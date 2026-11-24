@@ -162,44 +162,33 @@ pub async fn launch_minecraft(
         cmd.arg(part);
     }
 
-    // Log-Event senden
-    let emit_log = move |line: String| {
-        let _ = app_handle.emit("launcher:log", LauncherEvent::Log { line });
-    };
-
-    let emit_started = move |pid: u32| {
-        let _ = app_handle.emit("launcher:started", LauncherEvent::Started { pid });
-    };
-
-    let emit_stopped = move |code: Option<i32>| {
-        let _ = app_handle.emit("launcher:stopped", LauncherEvent::Stopped { exit_code: code });
-    };
-
-    let emit_error = move |msg: String| {
-        let _ = app_handle.emit("launcher:error", LauncherEvent::Error { message: msg });
-    };
+    // Log-Event senden (alle Closures klonen app_handle, da es mehrfach verwendet wird)
 
     // Prozess in tokio task starten
     tokio::spawn(async move {
+        let app_handle_err = app_handle.clone();
+        let app_handle_stop = app_handle.clone();
+        let app_handle_stdout = app_handle.clone();
+        let app_handle_stderr = app_handle.clone();
+
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
-                emit_error(format!("Fehler beim Starten: {}", e));
+                let _ = app_handle_err.emit("launcher:error", LauncherEvent::Error { message: format!("Fehler beim Starten: {}", e) });
                 return;
             }
         };
 
         let pid = child.id();
-        emit_started(pid);
+        let _ = app_handle_err.emit("launcher:started", LauncherEvent::Started { pid });
 
         // Stdout lesen
         if let Some(stdout) = child.stdout.take() {
             let stdout_reader = std::io::BufReader::new(stdout);
-            let emit_log_clone = emit_log;
             tokio::spawn(async move {
                 for line in stdout_reader.lines() {
                     if let Ok(l) = line {
-                        emit_log_clone(format!("[STDOUT] {}", l));
+                        let _ = app_handle_stdout.emit("launcher:log", LauncherEvent::Log { line: format!("[STDOUT] {}", l) });
                     }
                 }
             });
@@ -208,11 +197,10 @@ pub async fn launch_minecraft(
         // Stderr lesen
         if let Some(stderr) = child.stderr.take() {
             let stderr_reader = std::io::BufReader::new(stderr);
-            let emit_log_clone = emit_log;
             tokio::spawn(async move {
                 for line in stderr_reader.lines() {
                     if let Ok(l) = line {
-                        emit_log_clone(format!("[STDERR] {}", l));
+                        let _ = app_handle_stderr.emit("launcher:log", LauncherEvent::Log { line: format!("[STDERR] {}", l) });
                     }
                 }
             });
@@ -220,10 +208,12 @@ pub async fn launch_minecraft(
 
         let exit_status = child.wait();
         match exit_status {
-            Ok(status) => emit_stopped(status.code()),
+            Ok(status) => {
+                let _ = app_handle_stop.emit("launcher:stopped", LauncherEvent::Stopped { exit_code: status.code() });
+            }
             Err(e) => {
-                emit_error(format!("Fehler beim Warten auf Prozess: {}", e));
-                emit_stopped(None);
+                let _ = app_handle_err.emit("launcher:error", LauncherEvent::Error { message: format!("Fehler beim Warten auf Prozess: {}", e) });
+                let _ = app_handle_stop.emit("launcher:stopped", LauncherEvent::Stopped { exit_code: None });
             }
         }
     });

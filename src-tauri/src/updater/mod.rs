@@ -13,7 +13,7 @@ pub async fn check_for_updates(
             "version": update.version,
             "current_version": update.current_version,
             "body": update.body,
-            "date": update.date,
+            "date": update.date.map(|d| d.to_string()),
             "target": update.target,
         }));
 
