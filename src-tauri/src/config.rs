@@ -83,7 +83,7 @@ impl LauncherConfig {
         Ok(config)
     }
 
-    pub fn save(&self, app_handle: &tauri::AppHandle) -> Result<(), crate::error::LauncherError> {
+    pub fn save(&self, _app_handle: &tauri::AppHandle) -> Result<(), crate::error::LauncherError> {
         let config_path = self
             .app_data_dir
             .join("launcher.json");
@@ -122,7 +122,7 @@ pub fn get_config(state: tauri::State<'_, crate::AppState>) -> Result<crate::con
 
 #[tauri::command]
 pub fn save_config(
-    state: tauri::State<'_, crate::AppState>,
+    _state: tauri::State<'_, crate::AppState>,
     config: crate::config::LauncherConfig,
 ) -> Result<bool, LauncherError> {
     let config_path = config.app_data_dir.join("launcher.json");

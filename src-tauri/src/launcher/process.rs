@@ -14,7 +14,7 @@ pub struct LaunchRequest {
     pub ram_mb: Option<u32>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "event", content = "payload")]
 pub enum LauncherEvent {
     Log { line: String },

@@ -11,8 +11,10 @@ pub async fn check_for_updates(
     if let Some(update) = update {
         let _ = app_handle.emit("updater:available", serde_json::json!({
             "version": update.version,
+            "current_version": update.current_version,
             "body": update.body,
-            "url": update.url,
+            "date": update.date,
+            "target": update.target,
         }));
 
         Ok(true)
