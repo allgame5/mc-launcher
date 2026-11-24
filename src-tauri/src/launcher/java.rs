@@ -166,7 +166,7 @@ async fn download_extract_adoptium(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e.to_string()))?;

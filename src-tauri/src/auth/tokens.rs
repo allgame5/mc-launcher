@@ -1,5 +1,5 @@
 ﻿use crate::error::LauncherError;
-use crate::auth::device_code::{load_accounts, save_accounts, StoredAccount};
+use crate::auth::device_code::{load_accounts, save_accounts};
 use serde::Deserialize;
 use tauri::State;
 

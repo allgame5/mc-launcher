@@ -29,7 +29,7 @@ pub fn list_instances(
     state: State<'_, crate::AppState>,
 ) -> Result<Vec<InstanceJson>, LauncherError> {
     let instances_dir = &state.config.paths().instances_dir;
-    fs::create_dir_all(instances_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(instances_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let mut instances = Vec::new();
     if let Ok(entries) = fs::read_dir(instances_dir) {
@@ -39,9 +39,9 @@ pub fn list_instances(
                 let json_path = path.join("instance.json");
                 if json_path.exists() {
                     let data = fs::read_to_string(&json_path)
-                        .map_err(|e| LauncherError::Io(e))?;
+                        .map_err(|e| LauncherError::Io(e.to_string()))?;
                     let instance_json: InstanceJson =
-                        serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+                        serde_json::from_str(&data).map_err(|e| LauncherError::Json(e.to_string()))?;
                     instances.push(instance_json);
                 }
             }
@@ -65,8 +65,8 @@ pub fn get_instance(
     if !json_path.exists() {
         return Err(LauncherError::InstanceNotFound(instance_id));
     }
-    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
-    let instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e.to_string()))?;
+    let instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e.to_string()))?;
     Ok(instance_json)
 }
 
@@ -79,10 +79,10 @@ pub fn create_instance(
     let instance_id = id.to_string();
     let instance_dir = state.config.instance_dir(&instance_id);
 
-    fs::create_dir_all(&instance_dir).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(instance_dir.join("mods")).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(instance_dir.join("config")).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(instance_dir.join("logs")).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&instance_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(instance_dir.join("mods")).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(instance_dir.join("config")).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(instance_dir.join("logs")).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let ram_mb = request.ram_mb.unwrap_or(state.config.default_ram_mb);
 
@@ -100,9 +100,9 @@ pub fn create_instance(
 
     let instance_json = InstanceJson::from(&instance);
     let json_data = serde_json::to_string_pretty(&instance_json)
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Json(e.to_string()))?;
     fs::write(instance_dir.join("instance.json"), &json_data)
-        .map_err(|e| LauncherError::Io(e))?;
+        .map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let _ = ensure_java_for_version(&state.config, &request.mc_version);
 
@@ -128,8 +128,8 @@ pub fn edit_instance(
 
     let json_path = state.config.instance_json_path(&instance_json.id);
     let json_data = serde_json::to_string_pretty(&instance_json)
-        .map_err(|e| LauncherError::Json(e))?;
-    fs::write(&json_path, json_data).map_err(|e| LauncherError::Io(e))?;
+        .map_err(|e| LauncherError::Json(e.to_string()))?;
+    fs::write(&json_path, json_data).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     Ok(instance_json)
 }
@@ -141,7 +141,7 @@ pub fn delete_instance(
 ) -> Result<bool, LauncherError> {
     let instance_dir = state.config.instance_dir(&instance_id);
     if instance_dir.exists() {
-        fs::remove_dir_all(&instance_dir).map_err(|e| LauncherError::Io(e))?;
+        fs::remove_dir_all(&instance_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
     Ok(true)
 }
