@@ -1,18 +1,20 @@
-﻿use thiserror::Error;
+﻿use serde::Serialize;
+use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Serialize)]
+#[serde(tag = "type", content = "message")]
 pub enum LauncherError {
     #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(String),
 
     #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
+    Http(String),
 
     #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    Json(String),
 
     #[error("Zip error: {0}")]
-    Zip(#[from] zip::result::ZipError),
+    Zip(String),
 
     #[error("SHA1 error: {0}")]
     Sha1(String),
@@ -49,9 +51,12 @@ pub enum LauncherError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
+}
 
-    #[error("String error: {0}")]
-    StringError(#[from] String),
+impl From<String> for LauncherError {
+    fn from(s: String) -> Self {
+        LauncherError::Unknown(s)
+    }
 }
 
 impl From<LauncherError> for String {

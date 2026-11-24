@@ -1,7 +1,7 @@
 ﻿use crate::error::LauncherError;
 use crate::modrinth::client::ModrinthClient;
 use crate::modrinth::version::InstalledMod;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
 use std::collections::HashSet;
 use std::fs;
@@ -75,7 +75,7 @@ pub async fn install_modrinth_project(
     let instance_dir = config.instance_dir(&request.instance_id);
     let folder = mod_folder_for_type(&request.project_type);
     let target_dir = instance_dir.join(folder);
-    fs::create_dir_all(&target_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&target_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let client = ModrinthClient::new();
     let mut installed = Vec::new();
@@ -132,7 +132,7 @@ async fn install_version_recursive(
     let dest_path = target_dir.join(&primary_file.filename);
 
     if dest_path.exists() {
-        let data = fs::read(&dest_path).map_err(|e| LauncherError::Io(e))?;
+        let data = fs::read(&dest_path).map_err(|e| LauncherError::Io(e.to_string()))?;
         let mut hasher = Sha512::new();
         hasher.update(&data);
         let actual = format!("{:x}", hasher.finalize());
@@ -223,7 +223,7 @@ pub async fn update_installed_mods(
                 let instance_dir = config.instance_dir(&request.instance_id);
                 let folder = mod_folder_for_type("mod");
                 let target_dir = instance_dir.join(folder);
-                fs::create_dir_all(&target_dir).map_err(|e| LauncherError::Io(e))?;
+                fs::create_dir_all(&target_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
                 let old_path = &mod_entry.installed_path;
                 if old_path.exists() {

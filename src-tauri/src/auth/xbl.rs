@@ -22,10 +22,10 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .json(&xbl_body)
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     let xbl_token = xbl_resp
         .get("Token")
@@ -56,10 +56,10 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .json(&xsts_body)
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     let xsts_token = xsts_resp
         .get("Token")
@@ -77,10 +77,10 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .json(&mc_body)
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     let minecraft_token = mc_resp
         .get("access_token")

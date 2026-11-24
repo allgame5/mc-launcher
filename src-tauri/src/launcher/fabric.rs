@@ -25,8 +25,8 @@ pub async fn install_fabric(
     let libs_dir = instance_dir.join("libraries");
     let bin_dir = instance_dir.join("bin");
 
-    fs::create_dir_all(&libs_dir).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(&bin_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&libs_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(&bin_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let client = Client::new();
 
@@ -36,10 +36,10 @@ pub async fn install_fabric(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     let stable = versions
         .iter()
@@ -63,15 +63,15 @@ async fn download_file(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e))?;
+        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
-    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e))?;
-    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e))? {
-        file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
+    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
+    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e.to_string()))? {
+        file.write_all(&chunk).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
     Ok(())

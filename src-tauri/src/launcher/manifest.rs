@@ -126,12 +126,12 @@ pub async fn get_version_manifest() -> Result<VersionManifest, LauncherError> {
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     let manifest: VersionManifest = resp
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Json(e.to_string()))?;
 
     Ok(manifest)
 }
@@ -201,7 +201,7 @@ fn sha1_hex(data: &[u8]) -> String {
 }
 
 fn verify_sha1(path: &Path, expected: &str) -> Result<(), LauncherError> {
-    let data = fs::read(path).map_err(|e| LauncherError::Io(e))?;
+    let data = fs::read(path).map_err(|e| LauncherError::Io(e.to_string()))?;
     let actual = sha1_hex(&data);
     if actual != expected {
         return Err(LauncherError::HashMismatch {
@@ -223,15 +223,15 @@ async fn download_file(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e))?;
+        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
-    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e))?;
-    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e))? {
-        file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
+    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
+    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e.to_string()))? {
+        file.write_all(&chunk).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
     if let Some(expected) = expected_sha1 {
@@ -251,8 +251,8 @@ pub async fn download_instance(
     if !json_path.exists() {
         return Err(LauncherError::InstanceNotFound(instance_id.clone()));
     }
-    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
-    let instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e.to_string()))?;
+    let instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e.to_string()))?;
 
     let instance_dir = config.instance_dir(&instance_id);
     let bin_dir = instance_dir.join("bin");
@@ -260,10 +260,10 @@ pub async fn download_instance(
     let assets_dir = instance_dir.join("assets");
     let versions_dir = instance_dir.join("versions");
 
-    fs::create_dir_all(&bin_dir).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(&libs_dir).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(&assets_dir).map_err(|e| LauncherError::Io(e))?;
-    fs::create_dir_all(&versions_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&bin_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(&libs_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(&assets_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
+    fs::create_dir_all(&versions_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let client = Client::new();
 
@@ -279,15 +279,15 @@ pub async fn download_instance(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Json(e.to_string()))?;
 
     let version_json_path = versions_dir.join(format!("{}.json", instance_json.mc_version));
     let version_json_str =
-        serde_json::to_string_pretty(&version_json).map_err(|e| LauncherError::Json(e))?;
-    fs::write(&version_json_path, version_json_str).map_err(|e| LauncherError::Io(e))?;
+        serde_json::to_string_pretty(&version_json).map_err(|e| LauncherError::Json(e.to_string()))?;
+    fs::write(&version_json_path, version_json_str).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let client_info = &version_json.downloads.client;
     let client_jar_path = bin_dir.join(format!("{}.jar", instance_json.mc_version));
@@ -334,7 +334,7 @@ pub async fn download_instance(
     }
 
     let asset_index_path = assets_dir.join("indexes").join(format!("{}.json", version_json.asset_index.id));
-    fs::create_dir_all(assets_dir.join("indexes")).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(assets_dir.join("indexes")).map_err(|e| LauncherError::Io(e.to_string()))?;
     download_file(
         &client,
         &version_json.asset_index.url,
@@ -356,11 +356,11 @@ pub async fn verify_instance_files(
     if !json_path.exists() {
         return Err(LauncherError::InstanceNotFound(instance_id));
     }
-    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
-    let _instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e.to_string()))?;
+    let _instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e.to_string()))?;
 
     let bin_dir = config.instance_dir(&instance_id).join("bin");
-    let client_jar_path = bin_dir.join(format!("{}.jar", ""));
+    let client_jar_path = bin_dir.join(format!("{}.jar", instance_id));
 
     if !client_jar_path.exists() {
         return Ok(false);

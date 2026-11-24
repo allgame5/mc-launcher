@@ -105,7 +105,7 @@ pub async fn ensure_java_for_version(
         return Ok(java_dir);
     }
 
-    fs::create_dir_all(&java_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&java_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     let client = Client::new();
     let url = adoptium_api_url(major);
@@ -116,10 +116,10 @@ pub async fn ensure_java_for_version(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     if let Some(binaries) = resp.get("binaries").and_then(|v| v.as_array()) {
         for binary in binaries {
@@ -169,19 +169,19 @@ async fn download_extract_adoptium(
         .map_err(|e| LauncherError::Http(e))?;
 
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e))?;
+        fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
-    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e))?;
-    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e))? {
-        file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
+    let mut file = fs::File::create(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
+    while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e.to_string()))? {
+        file.write_all(&chunk).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
     if dest.extension().and_then(|e| e.to_str()) == Some("gz") {
-        let file = fs::File::open(dest).map_err(|e| LauncherError::Io(e))?;
+        let file = fs::File::open(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
         let gz = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(gz);
-        archive.unpack(java_dir).map_err(|e| LauncherError::Io(e))?;
+        archive.unpack(java_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
     }
 
     Ok(())

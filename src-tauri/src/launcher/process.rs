@@ -37,9 +37,9 @@ pub async fn launch_minecraft(
         return Err(LauncherError::InstanceNotFound(request.instance_id.clone()));
     }
 
-    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
+    let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e.to_string()))?;
     let instance_json: InstanceJson =
-        serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+        serde_json::from_str(&data).map_err(|e| LauncherError::Json(e.to_string()))?;
 
     // Java-Path bestimmen
     let java_path = request
@@ -61,9 +61,9 @@ pub async fn launch_minecraft(
             instance_json.mc_version
         )));
     }
-    let version_data = fs::read_to_string(&version_json_path).map_err(|e| LauncherError::Io(e))?;
+    let version_data = fs::read_to_string(&version_json_path).map_err(|e| LauncherError::Io(e.to_string()))?;
     let version_json: crate::launcher::manifest::VersionJson =
-        serde_json::from_str(&version_data).map_err(|e| LauncherError::Json(e))?;
+        serde_json::from_str(&version_data).map_err(|e| LauncherError::Json(e.to_string()))?;
 
     // Classpath aufbauen
     let libs_dir = instance_dir.join("libraries");
@@ -113,7 +113,7 @@ pub async fn launch_minecraft(
 
     // Natives-Verzeichnis
     let natives_dir = instance_dir.join("natives");
-    fs::create_dir_all(&natives_dir).map_err(|e| LauncherError::Io(e))?;
+    fs::create_dir_all(&natives_dir).map_err(|e| LauncherError::Io(e.to_string()))?;
 
     // JVM-Argumente
     let mut jvm_args: Vec<String> = Vec::new();

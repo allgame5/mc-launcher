@@ -1,0 +1,14 @@
+C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\deps\serde-530b3123a0b3efdb.d: C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\build\serde-83f1f3c388fa575e\out/private.rs
+
+C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\deps\libserde-530b3123a0b3efdb.rlib: C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\build\serde-83f1f3c388fa575e\out/private.rs
+
+C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\deps\libserde-530b3123a0b3efdb.rmeta: C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\build\serde-83f1f3c388fa575e\out/private.rs
+
+C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\lib.rs:
+C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\integer128.rs:
+C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\mod.rs:
+C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\de.rs:
+C:\Users\tobad\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.229\src\private\ser.rs:
+C:\Users\tobad\Documents\CFL\new\mc-launcher\src-tauri\target\debug\build\serde-83f1f3c388fa575e\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\tobad\\Documents\\CFL\\new\\mc-launcher\\src-tauri\\target\\debug\\build\\serde-83f1f3c388fa575e\\out

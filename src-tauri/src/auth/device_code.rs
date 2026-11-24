@@ -114,10 +114,10 @@ pub async fn authenticate_microsoft(
         .header("User-Agent", "MinecraftLauncher/0.1.0")
         .send()
         .await
-        .map_err(|e| LauncherError::Http(e))?
+        .map_err(|e| LauncherError::Http(e.to_string()))?
         .json()
         .await
-        .map_err(|e| LauncherError::Http(e))?;
+        .map_err(|e| LauncherError::Http(e.to_string()))?;
 
     Ok(resp)
 }
@@ -148,7 +148,7 @@ pub async fn device_code_poll(
             .header("User-Agent", "MinecraftLauncher/0.1.0")
             .send()
             .await
-            .map_err(|e| LauncherError::Http(e))?
+            .map_err(|e| LauncherError::Http(e.to_string()))?
             .json()
             .await
             .map_err(|e| serde_json::Value::String(e.to_string()));

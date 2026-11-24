@@ -104,12 +104,12 @@ impl ModrinthClient {
             .header("User-Agent", USER_AGENT)
             .send()
             .await
-            .map_err(|e| LauncherError::Http(e))?;
+            .map_err(|e| LauncherError::Http(e.to_string()))?;
 
         let result: ModrinthSearchResult = resp
             .json()
             .await
-            .map_err(|e| LauncherError::Http(e))?;
+            .map_err(|e| LauncherError::Http(e.to_string()))?;
 
         Ok(result)
     }
@@ -138,12 +138,12 @@ impl ModrinthClient {
             .header("User-Agent", USER_AGENT)
             .send()
             .await
-            .map_err(|e| LauncherError::Http(e))?;
+            .map_err(|e| LauncherError::Http(e.to_string()))?;
 
         let versions: Vec<ModrinthVersion> = resp
             .json()
             .await
-            .map_err(|e| LauncherError::Http(e))?;
+            .map_err(|e| LauncherError::Http(e.to_string()))?;
 
         Ok(versions)
     }
@@ -155,18 +155,18 @@ impl ModrinthClient {
             .header("User-Agent", USER_AGENT)
             .send()
             .await
-            .map_err(|e| LauncherError::Http(e))?;
+            .map_err(|e| LauncherError::Http(e.to_string()))?;
 
         if let Some(parent) = dest.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e))?;
+            std::fs::create_dir_all(parent).map_err(|e| LauncherError::Io(e.to_string()))?;
         }
 
-        let mut file = std::fs::File::create(dest).map_err(|e| LauncherError::Io(e))?;
-        while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e))? {
-            file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
+        let mut file = std::fs::File::create(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
+        while let Some(chunk) = resp.chunk().await.map_err(|e| LauncherError::Http(e.to_string()))? {
+            file.write_all(&chunk).map_err(|e| LauncherError::Io(e.to_string()))?;
         }
 
-        let data = std::fs::read(dest).map_err(|e| LauncherError::Io(e))?;
+        let data = std::fs::read(dest).map_err(|e| LauncherError::Io(e.to_string()))?;
         let mut hasher = Sha512::new();
         hasher.update(&data);
         let actual = format!("{:x}", hasher.finalize());

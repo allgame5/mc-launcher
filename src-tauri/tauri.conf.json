@@ -29,7 +29,7 @@
       "endpoints": [
         "https://api.github.com/repos/mclauncher/app/releases/latest"
       ],
-      "interval": 1 hour
+      "interval": "1h"
     },
     "shell": {
       "execute": {

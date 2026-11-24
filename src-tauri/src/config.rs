@@ -134,7 +134,7 @@ pub fn save_config(
 }
 
 pub fn ensure_dir(path: &Path) -> Result<(), crate::error::LauncherError> {
-    fs::create_dir_all(path).map_err(|e| LauncherError::Io(e))
+    fs::create_dir_all(path).map_err(|e| LauncherError::Io(e.to_string()))
 }
 
 fn default_app_data_dir() -> PathBuf {
