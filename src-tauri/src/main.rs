@@ -13,6 +13,7 @@ use auth::{
     set_active_account,
 };
 use config::{ensure_dir, LauncherConfig};
+#[allow(unused_imports)]
 use error::LauncherError;
 use instances::{
     create_instance, delete_instance, edit_instance, get_instance, list_instances,

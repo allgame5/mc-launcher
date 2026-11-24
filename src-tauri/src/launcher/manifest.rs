@@ -319,7 +319,8 @@ pub async fn download_instance(
             if let Some(classifiers) = &downloads.classifiers {
                 if let Some(classifier) = library_native_classifier(lib) {
                     if let Some(native_artifact) = classifiers.get(&classifier) {
-                        let dest_path = libs_dir.join(native_artifact.get("path").and_then(|v| v.as_str()).unwrap_or(&format!("{}-{}", lib.name, classifier)));
+                        let default_native = format!("{}-{}", lib.name, classifier);
+                        let dest_path = libs_dir.join(native_artifact.get("path").and_then(|v| v.as_str()).unwrap_or(&default_native));
                         download_file(
                             &client,
                             &native_artifact.get("url").and_then(|v| v.as_str()).unwrap_or(""),

@@ -2,7 +2,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha512};
-use std::fs;
 use std::io::Write;
 use std::time::Duration;
 
