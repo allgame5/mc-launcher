@@ -34,6 +34,8 @@
   }
 
   .input {
-    @apply bg-darker border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-acent transition-colors;
+    @apply bg-darker border border-border rounded-lg px-3 py-2 text-text focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors;
   }
 }
+
+
