@@ -82,10 +82,11 @@ pub async fn launch_minecraft(
         }
         if let Some(downloads) = &lib.downloads {
             if let Some(artifact) = &downloads.artifact {
+                let default_path = lib.name.replace(':', "/");
                 let path = artifact
                     .path
                     .as_deref()
-                    .unwrap_or_else(|| lib.name.replace(':', "/").as_str());
+                    .unwrap_or(default_path.as_str());
                 let lib_path = libs_dir.join(path);
                 if lib_path.exists() {
                     classpath_entries.push(lib_path.to_string_lossy().to_string());
@@ -95,10 +96,11 @@ pub async fn launch_minecraft(
             if let Some(classifiers) = &downloads.classifiers {
                 if let Some(classifier) = crate::launcher::manifest::library_native_classifier(lib) {
                     if let Some(native) = classifiers.get(&classifier) {
+                        let default_native = format!("{}-{}", lib.name, classifier);
                         let path = native
                             .get("path")
                             .and_then(|v| v.as_str())
-                            .unwrap_or_else(|| format!("{}-{}", lib.name, classifier).as_str());
+                            .unwrap_or(default_native.as_str());
                         let native_path = libs_dir.join(path);
                         if native_path.exists() {
                             classpath_entries.push(native_path.to_string_lossy().to_string());
