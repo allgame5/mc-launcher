@@ -1,4 +1,5 @@
-﻿use crate::error::LauncherError;\nuse serde::{Deserialize, Serialize};
+﻿use crate::error::LauncherError;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -70,7 +71,6 @@ impl LauncherConfig {
         } else {
             let mut cfg = LauncherConfig::default();
             cfg.app_data_dir = app_data_dir.clone();
-            // Client-ID aus Umgebungsvariable lesen
             if let Ok(client_id) = std::env::var("MINECRAFT_LAUNCHER_CLIENT_ID") {
                 if !client_id.is_empty() {
                     cfg.client_id = Some(client_id);
@@ -124,9 +124,6 @@ pub fn save_config(
     state: tauri::State<'_, crate::AppState>,
     config: crate::config::LauncherConfig,
 ) -> Result<bool, LauncherError> {
-    // Wir kÃ¶nnen den state nicht direkt mutieren, also speichern wir in die Datei
-    // Die AppState.config ist im State, aber tauri::State gibt immutable Zugriff.
-    // FÃ¼r MVP speichern wir direkt in die Datei
     let config_path = config.app_data_dir.join("launcher.json");
     let data = serde_json::to_string_pretty(&config).map_err(|e| LauncherError::Config(e.to_string()))?;
     std::fs::write(&config_path, data).map_err(|e| LauncherError::Config(e.to_string()))?;
@@ -160,4 +157,3 @@ fn dirs_home() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))
 }
-
