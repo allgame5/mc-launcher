@@ -1,8 +1,7 @@
-use crate::config::LauncherConfig;
-use crate::error::LauncherError;
-use crate::modrinth::client::{ModrinthClient, ModrinthVersion};
+﻿use crate::error::LauncherError;
+use crate::modrinth::client::ModrinthClient;
 use crate::modrinth::version::InstalledMod;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sha2::{Digest, Sha512};
 use std::collections::HashSet;
 use std::fs;
@@ -14,7 +13,7 @@ pub struct InstallModRequest {
     pub instance_id: String,
     pub project_id: String,
     pub version_id: String,
-    pub project_type: String, // mod, shaderpack, resourcepack
+    pub project_type: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,11 +41,11 @@ fn mod_folder_for_type(project_type: &str) -> &'static str {
     }
 }
 
-fn installed_mods_path(config: &LauncherConfig, instance_id: &str) -> PathBuf {
+fn installed_mods_path(config: &crate::config::LauncherConfig, instance_id: &str) -> PathBuf {
     config.instance_dir(instance_id).join("installed_mods.json")
 }
 
-fn load_installed_mods(config: &LauncherConfig, instance_id: &str) -> Vec<InstalledMod> {
+fn load_installed_mods(config: &crate::config::LauncherConfig, instance_id: &str) -> Vec<InstalledMod> {
     let path = installed_mods_path(config, instance_id);
     if !path.exists() {
         return Vec::new();
@@ -58,7 +57,7 @@ fn load_installed_mods(config: &LauncherConfig, instance_id: &str) -> Vec<Instal
     serde_json::from_str(&data).unwrap_or_default()
 }
 
-fn save_installed_mods(config: &LauncherConfig, instance_id: &str, mods: &[InstalledMod]) {
+fn save_installed_mods(config: &crate::config::LauncherConfig, instance_id: &str, mods: &[InstalledMod]) {
     let path = installed_mods_path(config, instance_id);
     let _ = fs::write(
         &path,
@@ -68,7 +67,7 @@ fn save_installed_mods(config: &LauncherConfig, instance_id: &str, mods: &[Insta
 
 #[tauri::command]
 pub async fn install_modrinth_project(
-    app_handle: tauri::AppHandle,
+    _app_handle: tauri::AppHandle,
     state: State<'_, crate::AppState>,
     request: InstallModRequest,
 ) -> Result<InstallResult, LauncherError> {
@@ -103,7 +102,7 @@ pub async fn install_modrinth_project(
 
 async fn install_version_recursive(
     client: &ModrinthClient,
-    config: &LauncherConfig,
+    config: &crate::config::LauncherConfig,
     instance_id: &str,
     project_id: &str,
     version_id: &str,
@@ -113,18 +112,16 @@ async fn install_version_recursive(
     visited: &mut HashSet<String>,
 ) -> Result<(), LauncherError> {
     if visited.contains(project_id) {
-        return Ok(()); // Zykluserkennung
+        return Ok(());
     }
     visited.insert(project_id.to_string());
 
-    // Versionen des Projekts laden (ohne Filter, wir haben die version_id)
     let versions = client.get_project_versions(project_id, None, None).await?;
     let version = versions
         .iter()
         .find(|v| v.id == version_id)
         .ok_or_else(|| LauncherError::Modrinth(format!("Version {} not found", version_id)))?;
 
-    // Primäre Datei finden
     let primary_file = version
         .files
         .iter()
@@ -134,7 +131,6 @@ async fn install_version_recursive(
 
     let dest_path = target_dir.join(&primary_file.filename);
 
-    // Prüfen ob bereits installiert mit gleichem Hash
     if dest_path.exists() {
         let data = fs::read(&dest_path).map_err(|e| LauncherError::Io(e))?;
         let mut hasher = Sha512::new();
@@ -142,12 +138,11 @@ async fn install_version_recursive(
         let actual = format!("{:x}", hasher.finalize());
         if actual == primary_file.hashes.sha512 {
             skipped.push(format!("{} (already installed)", primary_file.filename));
-            // Dennoch in installed_mods eintragen
             installed.push(InstalledMod {
                 project_id: project_id.to_string(),
                 version_id: version.id.clone(),
                 version_number: version.version_number.clone(),
-                project_title: project_id.to_string(), // Titel wäre nice, aber wir haben nur ID
+                project_title: project_id.to_string(),
                 file_name: primary_file.filename.clone(),
                 sha512: primary_file.hashes.sha512.clone(),
                 installed_path: dest_path,
@@ -157,7 +152,6 @@ async fn install_version_recursive(
         }
     }
 
-    // Herunterladen
     client.download_file(&primary_file.url, &dest_path, &primary_file.hashes.sha512).await?;
 
     installed.push(InstalledMod {
@@ -171,7 +165,6 @@ async fn install_version_recursive(
         installed_at: chrono::Utc::now().to_rfc3339(),
     });
 
-    // Required Dependencies rekursiv installieren
     for dep in &version.dependencies {
         if dep.dependency_type == "required" {
             let _ = install_version_recursive(
@@ -203,7 +196,7 @@ pub async fn list_installed_mods(
 
 #[tauri::command]
 pub async fn update_installed_mods(
-    app_handle: tauri::AppHandle,
+    _app_handle: tauri::AppHandle,
     state: State<'_, crate::AppState>,
     request: UpdateModsRequest,
 ) -> Result<InstallResult, LauncherError> {
@@ -221,20 +214,17 @@ pub async fn update_installed_mods(
         }
         visited.insert(mod_entry.project_id.clone());
 
-        // Neueste kompatible Version prüfen
         let versions = client
             .get_project_versions(&mod_entry.project_id, None, None)
             .await?;
 
         if let Some(latest) = versions.first() {
             if latest.id != mod_entry.version_id {
-                // Update verfügbar - installiere neueste
                 let instance_dir = config.instance_dir(&request.instance_id);
-                let folder = mod_folder_for_type("mod"); // Annahme: mod
+                let folder = mod_folder_for_type("mod");
                 let target_dir = instance_dir.join(folder);
                 fs::create_dir_all(&target_dir).map_err(|e| LauncherError::Io(e))?;
 
-                // Alte Datei löschen falls vorhanden
                 let old_path = &mod_entry.installed_path;
                 if old_path.exists() {
                     let _ = fs::remove_file(old_path);

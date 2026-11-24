@@ -1,17 +1,11 @@
-use crate::config::LauncherConfig;
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
 use crate::instances::model::{Instance, InstanceJson, ModLoader};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
 use tauri::State;
 use uuid::Uuid;
 
 use crate::launcher::java::ensure_java_for_version;
-
-pub struct AppState {
-    pub config: LauncherConfig,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateInstanceRequest {
@@ -32,7 +26,7 @@ pub struct EditInstanceRequest {
 
 #[tauri::command]
 pub fn list_instances(
-    state: State<'_, AppState>,
+    state: State<'_, crate::AppState>,
 ) -> Result<Vec<InstanceJson>, LauncherError> {
     let instances_dir = &state.config.paths().instances_dir;
     fs::create_dir_all(instances_dir).map_err(|e| LauncherError::Io(e))?;
@@ -64,7 +58,7 @@ pub fn list_instances(
 
 #[tauri::command]
 pub fn get_instance(
-    state: State<'_, AppState>,
+    state: State<'_, crate::AppState>,
     instance_id: String,
 ) -> Result<InstanceJson, LauncherError> {
     let json_path = state.config.instance_json_path(&instance_id);
@@ -78,21 +72,17 @@ pub fn get_instance(
 
 #[tauri::command]
 pub fn create_instance(
-    state: State<'_, AppState>,
+    state: State<'_, crate::AppState>,
     request: CreateInstanceRequest,
 ) -> Result<InstanceJson, LauncherError> {
     let id = Uuid::new_v4();
     let instance_id = id.to_string();
     let instance_dir = state.config.instance_dir(&instance_id);
 
-    // Verzeichnisstruktur anlegen
     fs::create_dir_all(&instance_dir).map_err(|e| LauncherError::Io(e))?;
     fs::create_dir_all(instance_dir.join("mods")).map_err(|e| LauncherError::Io(e))?;
     fs::create_dir_all(instance_dir.join("config")).map_err(|e| LauncherError::Io(e))?;
     fs::create_dir_all(instance_dir.join("logs")).map_err(|e| LauncherError::Io(e))?;
-    if request.mod_loader == "fabric" || request.mod_loader == "neoforge" {
-        fs::create_dir_all(instance_dir.join("mods")).map_err(|e| LauncherError::Io(e))?;
-    }
 
     let ram_mb = request.ram_mb.unwrap_or(state.config.default_ram_mb);
 
@@ -114,7 +104,6 @@ pub fn create_instance(
     fs::write(instance_dir.join("instance.json"), &json_data)
         .map_err(|e| LauncherError::Io(e))?;
 
-    // Java für die Version sicherstellen (asynchron im Hintergrund nicht blockierend hier)
     let _ = ensure_java_for_version(&state.config, &request.mc_version);
 
     Ok(instance_json)
@@ -122,7 +111,7 @@ pub fn create_instance(
 
 #[tauri::command]
 pub fn edit_instance(
-    state: State<'_, AppState>,
+    state: State<'_, crate::AppState>,
     request: EditInstanceRequest,
 ) -> Result<InstanceJson, LauncherError> {
     let mut instance_json = get_instance(state.clone(), request.id.clone())?;
@@ -147,7 +136,7 @@ pub fn edit_instance(
 
 #[tauri::command]
 pub fn delete_instance(
-    state: State<'_, AppState>,
+    state: State<'_, crate::AppState>,
     instance_id: String,
 ) -> Result<bool, LauncherError> {
     let instance_dir = state.config.instance_dir(&instance_id);

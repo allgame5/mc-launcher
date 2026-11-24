@@ -1,7 +1,6 @@
-use thiserror::Error;
+﻿use thiserror::Error;
 
-#[derive(Error, Debug, serde::Serialize)]
-#[serde(tag = "type", content = "message")]
+#[derive(Error, Debug)]
 pub enum LauncherError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
@@ -50,6 +49,9 @@ pub enum LauncherError {
 
     #[error("Unknown error: {0}")]
     Unknown(String),
+
+    #[error("String error: {0}")]
+    StringError(#[from] String),
 }
 
 impl From<LauncherError> for String {

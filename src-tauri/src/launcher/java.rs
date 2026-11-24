@@ -1,21 +1,10 @@
-use crate::config::LauncherConfig;
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::io::Write;
+use std::path::Path;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AdoptiumRelease {
-    pub major_version: i32,
-    pub download_url: String,
-    pub file_name: String,
-}
-
-/// Bestimmt die passende Java-Major-Version für eine Minecraft-Version.
-/// Java 8: <= 1.16
-/// Java 17: 1.17 - 1.20.4
-/// Java 21: >= 1.20.5
 pub fn java_major_for_mc(mc_version: &str) -> i32 {
     let parts: Vec<&str> = mc_version.split('.').collect();
     let major: i32 = parts.get(0).and_then(|p| p.parse().ok()).unwrap_or(1);
@@ -24,10 +13,8 @@ pub fn java_major_for_mc(mc_version: &str) -> i32 {
     if major == 1 && minor <= 16 {
         8
     } else if major == 1 && minor >= 21 {
-        // 1.21+
         21
     } else if major == 1 {
-        // 1.17 - 1.20.x
         17
     } else if major >= 2 {
         21
@@ -65,7 +52,7 @@ fn current_os_arch() -> (&'static str, &'static str) {
     (os, arch)
 }
 
-fn find_java_exe(java_dir: &Path) -> Option<PathBuf> {
+fn find_java_exe(java_dir: &Path) -> Option<std::path::PathBuf> {
     let candidates = if cfg!(target_os = "windows") {
         vec![
             java_dir.join("bin").join("java.exe"),
@@ -91,15 +78,13 @@ pub async fn get_java_path(
         return Ok(Some(exe.to_string_lossy().to_string()));
     }
 
-    // System-Java prüfen
     if let Ok(java_home) = std::env::var("JAVA_HOME") {
-        let path = PathBuf::from(java_home);
+        let path = std::path::PathBuf::from(java_home);
         if let Some(exe) = find_java_exe(&path) {
             return Ok(Some(exe.to_string_lossy().to_string()));
         }
     }
 
-    // Config java_path
     if let Some(ref custom) = config.java_path {
         if Path::new(custom).exists() {
             return Ok(Some(custom.clone()));
@@ -110,9 +95,9 @@ pub async fn get_java_path(
 }
 
 pub async fn ensure_java_for_version(
-    config: &LauncherConfig,
+    config: &crate::config::LauncherConfig,
     mc_version: &str,
-) -> Result<PathBuf, LauncherError> {
+) -> Result<std::path::PathBuf, LauncherError> {
     let major = java_major_for_mc(mc_version);
     let java_dir = config.paths().java_dir.join(format!("jre-{}-latest", major));
 
@@ -122,7 +107,6 @@ pub async fn ensure_java_for_version(
 
     fs::create_dir_all(&java_dir).map_err(|e| LauncherError::Io(e))?;
 
-    // Versuche Adoptium API
     let client = Client::new();
     let url = adoptium_api_url(major);
     let (os, arch) = current_os_arch();
@@ -135,9 +119,8 @@ pub async fn ensure_java_for_version(
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
-    // Durchsuche binaries nach passendem OS/Arch/JDK (nicht JRE, für Minecraft brauchen wir JRE/JDK)
     if let Some(binaries) = resp.get("binaries").and_then(|v| v.as_array()) {
         for binary in binaries {
             let binary_os = binary.get("metadata").and_then(|m| m.get("os")).and_then(|o| o.get("name")).and_then(|n| n.as_str()).unwrap_or("");
@@ -156,7 +139,6 @@ pub async fn ensure_java_for_version(
             if os_match && arch_match && is_jre {
                 if let Some(package) = binary.get("package").and_then(|p| p.as_object()) {
                     if let Some(link) = package.get("link").and_then(|l| l.as_str()) {
-                        // Download und Extraktion
                         let dest = java_dir.join("adoptium.tar.gz");
                         download_extract_adoptium(&client, link, &dest, &java_dir).await?;
                         if find_java_exe(&java_dir).is_some() {
@@ -195,17 +177,12 @@ async fn download_extract_adoptium(
         file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
     }
 
-    // Adoptium liefert auf Windows .msi, auf macOS/Linux .tar.gz
-    // Einfache Extraktion für .tar.gz
     if dest.extension().and_then(|e| e.to_str()) == Some("gz") {
         let file = fs::File::open(dest).map_err(|e| LauncherError::Io(e))?;
         let gz = flate2::read::GzDecoder::new(file);
         let mut archive = tar::Archive::new(gz);
         archive.unpack(java_dir).map_err(|e| LauncherError::Io(e))?;
     }
-
-    // Auf Windows würde man das .msi extrahieren müssen, hier übersprungen für Einfachheit
-    // In Production würde man msiexec oder 7zip verwenden
 
     Ok(())
 }

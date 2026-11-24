@@ -1,11 +1,11 @@
-use crate::config::LauncherConfig;
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
+use crate::instances::InstanceJson;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const MANIFEST_URL: &str = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
 
@@ -77,7 +77,7 @@ pub struct Library {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LibraryDownloads {
     pub artifact: Option<LibraryArtifact>,
-    pub classifiers: Option<serde_json::Map<String, LibraryArtifact>>,
+    pub classifiers: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,7 +131,7 @@ pub async fn get_version_manifest() -> Result<VersionManifest, LauncherError> {
     let manifest: VersionManifest = resp
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
     Ok(manifest)
 }
@@ -158,7 +158,7 @@ fn current_arch() -> &'static str {
     }
 }
 
-fn library_applies(lib: &Library) -> bool {
+pub fn library_applies(lib: &Library) -> bool {
     if let Some(rules) = &lib.rules {
         let mut allowed = true;
         for rule in rules {
@@ -183,7 +183,7 @@ fn library_applies(lib: &Library) -> bool {
     true
 }
 
-fn library_native_classifier(lib: &Library) -> Option<String> {
+pub fn library_native_classifier(lib: &Library) -> Option<String> {
     lib.natives.as_ref().and_then(|n| {
         n.get(current_platform_os_name())
             .and_then(|v| v.as_str())
@@ -246,7 +246,6 @@ pub async fn download_instance(
     state: tauri::State<'_, crate::AppState>,
     instance_id: String,
 ) -> Result<bool, LauncherError> {
-    // Lade Instance-JSON
     let config = &state.config;
     let json_path = config.instance_json_path(&instance_id);
     if !json_path.exists() {
@@ -268,7 +267,6 @@ pub async fn download_instance(
 
     let client = Client::new();
 
-    // 1. Version JSON herunterladen
     let manifest = get_version_manifest().await?;
     let version_entry = manifest
         .versions
@@ -284,15 +282,13 @@ pub async fn download_instance(
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
-    // Version JSON speichern
     let version_json_path = versions_dir.join(format!("{}.json", instance_json.mc_version));
     let version_json_str =
         serde_json::to_string_pretty(&version_json).map_err(|e| LauncherError::Json(e))?;
     fs::write(&version_json_path, version_json_str).map_err(|e| LauncherError::Io(e))?;
 
-    // 2. Client-JAR herunterladen
     let client_info = &version_json.downloads.client;
     let client_jar_path = bin_dir.join(format!("{}.jar", instance_json.mc_version));
     download_file(
@@ -303,7 +299,6 @@ pub async fn download_instance(
     )
     .await?;
 
-    // 3. Libraries herunterladen
     for lib in &version_json.libraries {
         if !library_applies(lib) {
             continue;
@@ -321,16 +316,15 @@ pub async fn download_instance(
                 .await?;
             }
 
-            // Natives
             if let Some(classifiers) = &downloads.classifiers {
                 if let Some(classifier) = library_native_classifier(lib) {
                     if let Some(native_artifact) = classifiers.get(&classifier) {
-                        let dest_path = libs_dir.join(native_artifact.path.as_deref().unwrap_or(&format!("{}-{}", lib.name, classifier)));
+                        let dest_path = libs_dir.join(native_artifact.get("path").and_then(|v| v.as_str()).unwrap_or(&format!("{}-{}", lib.name, classifier)));
                         download_file(
                             &client,
-                            &native_artifact.url,
+                            &native_artifact.get("url").and_then(|v| v.as_str()).unwrap_or(""),
                             &dest_path,
-                            Some(&native_artifact.sha1),
+                            Some(&native_artifact.get("sha1").and_then(|v| v.as_str()).unwrap_or("")),
                         )
                         .await?;
                     }
@@ -339,7 +333,6 @@ pub async fn download_instance(
         }
     }
 
-    // 4. Asset Index herunterladen
     let asset_index_path = assets_dir.join("indexes").join(format!("{}.json", version_json.asset_index.id));
     fs::create_dir_all(assets_dir.join("indexes")).map_err(|e| LauncherError::Io(e))?;
     download_file(
@@ -364,15 +357,14 @@ pub async fn verify_instance_files(
         return Err(LauncherError::InstanceNotFound(instance_id));
     }
     let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
-    let instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
+    let _instance_json: InstanceJson = serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
 
     let bin_dir = config.instance_dir(&instance_id).join("bin");
-    let client_jar_path = bin_dir.join(format!("{}.jar", instance_json.mc_version));
+    let client_jar_path = bin_dir.join(format!("{}.jar", ""));
 
     if !client_jar_path.exists() {
         return Ok(false);
     }
 
-    // Einfache Prüfung: Existenz der wichtigsten Dateien
     Ok(true)
 }

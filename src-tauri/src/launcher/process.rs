@@ -1,11 +1,10 @@
-use crate::config::LauncherConfig;
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
+use crate::instances::model::InstanceJson;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
 use std::io::BufRead;
-use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use tauri::Emitter;
 use tauri::State;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,13 +38,13 @@ pub async fn launch_minecraft(
     }
 
     let data = fs::read_to_string(&json_path).map_err(|e| LauncherError::Io(e))?;
-    let instance_json: crate::instances::model::InstanceJson =
+    let instance_json: InstanceJson =
         serde_json::from_str(&data).map_err(|e| LauncherError::Json(e))?;
 
     // Java-Path bestimmen
     let java_path = request
         .java_path
-        .or_else(|| config.java_path.clone())
+        .or_else(|| config.java_path.clone().map(|p| p.to_string_lossy().to_string()))
         .unwrap_or_else(|| {
             let major_dir = format!("jre-{}-latest", crate::launcher::java::java_major_for_mc(&instance_json.mc_version));
             config.paths().java_dir.join(&major_dir).join("bin").join("java.exe").to_string_lossy().to_string()
@@ -86,7 +85,7 @@ pub async fn launch_minecraft(
                 let path = artifact
                     .path
                     .as_deref()
-                    .unwrap_or_else(|| lib.name.replace(':', "/"));
+                    .unwrap_or_else(|| lib.name.replace(':', "/").as_str());
                 let lib_path = libs_dir.join(path);
                 if lib_path.exists() {
                     classpath_entries.push(lib_path.to_string_lossy().to_string());
@@ -97,9 +96,9 @@ pub async fn launch_minecraft(
                 if let Some(classifier) = crate::launcher::manifest::library_native_classifier(lib) {
                     if let Some(native) = classifiers.get(&classifier) {
                         let path = native
-                            .path
-                            .as_deref()
-                            .unwrap_or_else(|| &format!("{}-{}", lib.name, classifier));
+                            .get("path")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or_else(|| format!("{}-{}", lib.name, classifier).as_str());
                         let native_path = libs_dir.join(path);
                         if native_path.exists() {
                             classpath_entries.push(native_path.to_string_lossy().to_string());
@@ -133,8 +132,6 @@ pub async fn launch_minecraft(
         .minecraft_arguments
         .unwrap_or_else(|| "--username ${auth_player_name} --uuid ${auth_uuid} --token ${auth_access_token} --version ${version_name} --gameDir ${game_directory} --assetsDir ${assets_root} --assetIndex ${assets_index_name} --uuid ${auth_uuid} --userType ${user_type} --versionType ${version_type}".to_string());
 
-    // Plattform-spezifische natives entpacken wäre hier nötig, übersprungen für MVP
-
     // Befehl zusammenbauen
     let mut cmd = Command::new(&java_path);
     cmd.current_dir(&instance_dir);
@@ -151,13 +148,13 @@ pub async fn launch_minecraft(
     // Minecraft-Args einfügen (vereinfacht, ohne Auth-Tokens für MVP)
     let mc_args_filled = mc_args
         .replace("${auth_player_name}", "Player")
-        .replace("${auth_uuid}", "00000000-0000-0000-0000-000000000000")
+        .replace("${auth_uuid}", "00000000-0000-0000-000000000000")
         .replace("${auth_access_token}", "")
         .replace("${version_name}", &instance_json.mc_version)
         .replace("${game_directory}", &instance_dir.to_string_lossy())
         .replace("${assets_root}", &instance_dir.join("assets").to_string_lossy())
         .replace("${assets_index_name}", &version_json.asset_index.id)
-        .replace("${auth_uuid}", "00000000-0000-0000-0000-000000000000")
+        .replace("${auth_uuid}", "00000000-0000-0000-000000000000")
         .replace("${user_type}", "legacy")
         .replace("${version_type}", "custom");
 
@@ -221,7 +218,7 @@ pub async fn launch_minecraft(
             });
         }
 
-        let exit_status = child.wait().await;
+        let exit_status = child.wait();
         match exit_status {
             Ok(status) => emit_stopped(status.code()),
             Err(e) => {

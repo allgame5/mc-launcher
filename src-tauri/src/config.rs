@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use crate::error::LauncherError;\nuse serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -124,9 +124,9 @@ pub fn save_config(
     state: tauri::State<'_, crate::AppState>,
     config: crate::config::LauncherConfig,
 ) -> Result<bool, LauncherError> {
-    // Wir können den state nicht direkt mutieren, also speichern wir in die Datei
+    // Wir kÃ¶nnen den state nicht direkt mutieren, also speichern wir in die Datei
     // Die AppState.config ist im State, aber tauri::State gibt immutable Zugriff.
-    // Für MVP speichern wir direkt in die Datei
+    // FÃ¼r MVP speichern wir direkt in die Datei
     let config_path = config.app_data_dir.join("launcher.json");
     let data = serde_json::to_string_pretty(&config).map_err(|e| LauncherError::Config(e.to_string()))?;
     std::fs::write(&config_path, data).map_err(|e| LauncherError::Config(e.to_string()))?;
@@ -160,3 +160,4 @@ fn dirs_home() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("."))
 }
+

@@ -1,6 +1,9 @@
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha512};
+use std::fs;
+use std::io::Write;
 use std::time::Duration;
 
 const BASE_URL: &str = "https://api.modrinth.com/v2";
@@ -18,7 +21,7 @@ pub struct ModrinthProject {
     pub title: String,
     pub slug: String,
     pub description: String,
-    pub project_type: String, // mod, modpack, shaderpack, resourcepack
+    pub project_type: String,
     pub icon_url: Option<String>,
     pub downloads: u64,
     pub followers: u64,
@@ -57,7 +60,7 @@ pub struct ModrinthHashes {
 pub struct ModrinthDependency {
     pub project_id: String,
     pub version_id: String,
-    pub dependency_type: String, // required, optional, incompatible, embedded
+    pub dependency_type: String,
 }
 
 pub struct ModrinthClient {
@@ -103,7 +106,11 @@ impl ModrinthClient {
             .await
             .map_err(|e| LauncherError::Http(e))?;
 
-        let result: ModrinthSearchResult = resp.json().await.map_err(|e| LauncherError::Json(e))?;
+        let result: ModrinthSearchResult = resp
+            .json()
+            .await
+            .map_err(|e| LauncherError::Http(e))?;
+
         Ok(result)
     }
 
@@ -133,7 +140,11 @@ impl ModrinthClient {
             .await
             .map_err(|e| LauncherError::Http(e))?;
 
-        let versions: Vec<ModrinthVersion> = resp.json().await.map_err(|e| LauncherError::Json(e))?;
+        let versions: Vec<ModrinthVersion> = resp
+            .json()
+            .await
+            .map_err(|e| LauncherError::Http(e))?;
+
         Ok(versions)
     }
 
@@ -155,9 +166,8 @@ impl ModrinthClient {
             file.write_all(&chunk).map_err(|e| LauncherError::Io(e))?;
         }
 
-        // SHA512 prüfen
         let data = std::fs::read(dest).map_err(|e| LauncherError::Io(e))?;
-        let mut hasher = sha2::Sha512::new();
+        let mut hasher = Sha512::new();
         hasher.update(&data);
         let actual = format!("{:x}", hasher.finalize());
 

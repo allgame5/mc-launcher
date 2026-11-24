@@ -1,4 +1,4 @@
-use crate::error::LauncherError;
+﻿use crate::error::LauncherError;
 use crate::modrinth::client::{ModrinthClient, ModrinthSearchFilters};
 use serde::Deserialize;
 use tauri::State;
@@ -15,7 +15,7 @@ pub struct SearchRequest {
 
 #[tauri::command]
 pub async fn search_modrinth(
-    state: State<'_, crate::AppState>,
+    _state: State<'_, crate::AppState>,
     request: SearchRequest,
 ) -> Result<crate::modrinth::client::ModrinthSearchResult, LauncherError> {
     let client = ModrinthClient::new();

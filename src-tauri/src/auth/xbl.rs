@@ -1,12 +1,10 @@
-use crate::auth::device_code::XblResult;
+﻿use crate::auth::device_code::XblResult;
 use crate::error::LauncherError;
 use reqwest::Client;
-use serde::Serialize;
 
 pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, LauncherError> {
     let client = Client::new();
 
-    // 1. Xbox Live Authenticate
     let xbl_body = serde_json::json!({
         "Properties": {
             "AuthMethod": "RPS",
@@ -27,7 +25,7 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
     let xbl_token = xbl_resp
         .get("Token")
@@ -42,7 +40,6 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .and_then(|u| u.as_str())
         .ok_or_else(|| LauncherError::Auth("Kein XBL UserHash erhalten".to_string()))?;
 
-    // 2. XSTS Authenticate
     let xsts_body = serde_json::json!({
         "Properties": {
             "SandboxId": "RETAIL",
@@ -62,14 +59,13 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
     let xsts_token = xsts_resp
         .get("Token")
         .and_then(|t| t.as_str())
         .ok_or_else(|| LauncherError::Auth("Kein XSTS Token erhalten".to_string()))?;
 
-    // 3. Minecraft Services Login
     let mc_body = serde_json::json!({
         "identityToken": format!("XBL3.0 x={};{}", user_hash, xsts_token),
     });
@@ -84,7 +80,7 @@ pub async fn xbl_authenticate(access_token: String) -> Result<XblResult, Launche
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
     let minecraft_token = mc_resp
         .get("access_token")

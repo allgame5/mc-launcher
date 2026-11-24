@@ -1,3 +1,4 @@
+﻿use crate::auth::xbl::xbl_authenticate;
 use crate::config::LauncherConfig;
 use crate::error::LauncherError;
 use reqwest::Client;
@@ -89,13 +90,12 @@ fn get_client_id(config: &LauncherConfig, override_id: Option<&str>) -> Result<S
         return Ok(id.clone());
     }
     Err(LauncherError::Auth(
-        "Keine Microsoft Client-ID konfiguriert. Setze MINECRAFT_LAUNCHER_CLIENT_ID oder in den Einstellungen.".to_string(),
+        "Keine Microsoft Client-ID konfiguriert.".to_string(),
     ))
 }
 
 #[tauri::command]
 pub async fn authenticate_microsoft(
-    app_handle: tauri::AppHandle,
     state: State<'_, crate::AppState>,
     request: AuthRequest,
 ) -> Result<DeviceCodeResponse, LauncherError> {
@@ -117,14 +117,13 @@ pub async fn authenticate_microsoft(
         .map_err(|e| LauncherError::Http(e))?
         .json()
         .await
-        .map_err(|e| LauncherError::Json(e))?;
+        .map_err(|e| LauncherError::Http(e))?;
 
     Ok(resp)
 }
 
 #[tauri::command]
 pub async fn device_code_poll(
-    app_handle: tauri::AppHandle,
     state: State<'_, crate::AppState>,
     request: PollRequest,
 ) -> Result<StoredAccount, LauncherError> {
@@ -133,9 +132,8 @@ pub async fn device_code_poll(
 
     let client = Client::new();
 
-    // Bis zu 10 Minuten pollen (alle interval Sekunden)
     let mut attempts = 0;
-    let max_attempts = 600; // ~10 Minuten bei 1s Intervall
+    let max_attempts = 600;
 
     loop {
         let params = [
@@ -153,18 +151,16 @@ pub async fn device_code_poll(
             .map_err(|e| LauncherError::Http(e))?
             .json()
             .await
-            .map_err(|e| LauncherError::Json(e));
+            .map_err(|e| serde_json::Value::String(e.to_string()));
 
         match resp {
             Ok(tokens) => {
-                // Token erhalten - nun XBL Auth
                 let xbl_result = xbl_authenticate(tokens.access_token.clone()).await?;
                 let username = xbl_result.user.clone().unwrap_or_else(|| "Unknown".to_string());
                 let xuid = xbl_result.xuid.clone();
 
                 let mut accounts = load_accounts(config);
 
-                // Bestehenden Account mit gleichem Benutzernamen aktualisieren oder neu hinzufügen
                 if let Some(existing) = accounts.iter_mut().find(|a| a.username == username) {
                     existing.access_token = tokens.access_token;
                     existing.refresh_token = tokens.refresh_token;
@@ -186,14 +182,12 @@ pub async fn device_code_poll(
                 return Ok(accounts.last().unwrap().clone());
             }
             Err(err_value) => {
-                // Prüfe auf authorization_pending
                 let error_code = err_value.get("error").and_then(|v| v.as_str()).unwrap_or("");
                 if error_code == "authorization_pending" {
                     attempts += 1;
                     if attempts > max_attempts {
                         return Err(LauncherError::Auth("Device-Code abgelaufen".to_string()));
                     }
-                    // Warte interval Sekunden
                     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
                     continue;
                 } else if error_code == "slow_down" {
