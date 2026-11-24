@@ -1,4 +1,5 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "Minecraft Launcher",
   "version": "0.1.0",
   "identifier": "com.mclauncher.app",
@@ -24,12 +25,10 @@
   },
   "plugins": {
     "updater": {
-      "enabled": true,
       "pubkey": "Ta4A4yfV6E5Z9kN2mP8qR3tW7xL1cB4fG6hJ8kL0nP=",
       "endpoints": [
         "https://api.github.com/repos/mclauncher/app/releases/latest"
-      ],
-      "interval": "1h"
+      ]
     },
     "shell": {
       "execute": {
@@ -59,10 +58,6 @@
       ]
     }
   },
-  "package": {
-    "productName": "Minecraft Launcher",
-    "version": "0.1.0"
-  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -73,44 +68,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "tauri": {
-    "allowlist": {
-      "all": true,
-      "shell": {
-        "execute": true,
-        "sidecar": true
-      },
-      "fs": {
-        "readFile": true,
-        "writeFile": true,
-        "createDir": true,
-        "removeDir": true,
-        "removeFile": true,
-        "exists": true,
-        "copyFile": true,
-        "renameFile": true,
-        "readDir": true,
-        "scope": [
-          "$APPDATA/**",
-          "$LOCALAPPDATA/**",
-          "$HOME/**",
-          "$RESOURCE_DIR/**"
-        ]
-      },
-      "http": {
-        "request": true
-      },
-      "dialog": {
-        "open": true,
-        "save": true
-      },
-      "notification": {
-        "notification": true
-      },
-      "updater": {
-        "update": true
-      }
-    }
   }
 }
