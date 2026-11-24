@@ -1,0 +1,105 @@
+{
+  "productName": "Minecraft Launcher",
+  "version": "0.1.0",
+  "identifier": "com.mclauncher.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "devPath": "http://localhost:5173",
+    "distDir": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Minecraft Launcher",
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 ws://localhost:5173;"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "enabled": true,
+      "pubkey": "Ta4A4yfV6E5Z9kN2mP8qR3tW7xL1cB4fG6hJ8kL0nP=",
+      "endpoints": [
+        "https://api.github.com/repos/mclauncher/app/releases/latest"
+      ],
+      "interval": 1 hour
+    },
+    "shell": {
+      "execute": {
+        "allow": [
+          {
+            "name": "java",
+            "cmd": "java",
+            "args": true
+          },
+          {
+            "name": "javaw",
+            "cmd": "javaw",
+            "args": true
+          }
+        ]
+      }
+    },
+    "log": {
+      "level": "info"
+    },
+    "fs": {
+      "scope": [
+        "$APPDATA/**",
+        "$LOCALAPPDATA/**",
+        "$HOME/**",
+        "$RESOURCE_DIR/**"
+      ]
+    }
+  },
+  "package": {
+    "productName": "Minecraft Launcher",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": true,
+      "shell": {
+        "execute": true,
+        "sidecar": true
+      },
+      "fs": {
+        "readFile": true,
+        "writeFile": true,
+        "createDir": true,
+        "removeDir": true,
+        "removeFile": true,
+        "exists": true,
+        "copyFile": true,
+        "renameFile": true,
+        "readDir": true,
+        "scope": [
+          "$APPDATA/**",
+          "$LOCALAPPDATA/**",
+          "$HOME/**",
+          "$RESOURCE_DIR/**"
+        ]
+      },
+      "http": {
+        "request": true
+      },
+      "dialog": {
+        "open": true,
+        "save": true
+      },
+      "notification": {
+        "notification": true
+      },
+      "updater": {
+        "update": true
+      }
+    }
+  }
+}
