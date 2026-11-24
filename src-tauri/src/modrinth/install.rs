@@ -6,6 +6,8 @@ use sha2::{Digest, Sha512};
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
+use std::pin::Pin;
+use std::future::Future;
 use tauri::State;
 
 #[derive(Debug, Deserialize)]
@@ -100,89 +102,91 @@ pub async fn install_modrinth_project(
     Ok(InstallResult { installed, skipped })
 }
 
-async fn install_version_recursive(
-    client: &ModrinthClient,
-    config: &crate::config::LauncherConfig,
-    instance_id: &str,
-    project_id: &str,
-    version_id: &str,
-    target_dir: &std::path::Path,
-    installed: &mut Vec<InstalledMod>,
-    skipped: &mut Vec<String>,
-    visited: &mut HashSet<String>,
-) -> Result<(), LauncherError> {
-    if visited.contains(project_id) {
-        return Ok(());
-    }
-    visited.insert(project_id.to_string());
-
-    let versions = client.get_project_versions(project_id, None, None).await?;
-    let version = versions
-        .iter()
-        .find(|v| v.id == version_id)
-        .ok_or_else(|| LauncherError::Modrinth(format!("Version {} not found", version_id)))?;
-
-    let primary_file = version
-        .files
-        .iter()
-        .find(|f| f.primary)
-        .or_else(|| version.files.first())
-        .ok_or_else(|| LauncherError::Modrinth("No files in version".to_string()))?;
-
-    let dest_path = target_dir.join(&primary_file.filename);
-
-    if dest_path.exists() {
-        let data = fs::read(&dest_path).map_err(|e| LauncherError::Io(e.to_string()))?;
-        let mut hasher = Sha512::new();
-        hasher.update(&data);
-        let actual = format!("{:x}", hasher.finalize());
-        if actual == primary_file.hashes.sha512 {
-            skipped.push(format!("{} (already installed)", primary_file.filename));
-            installed.push(InstalledMod {
-                project_id: project_id.to_string(),
-                version_id: version.id.clone(),
-                version_number: version.version_number.clone(),
-                project_title: project_id.to_string(),
-                file_name: primary_file.filename.clone(),
-                sha512: primary_file.hashes.sha512.clone(),
-                installed_path: dest_path,
-                installed_at: chrono::Utc::now().to_rfc3339(),
-            });
+fn install_version_recursive<'a>(
+    client: &'a ModrinthClient,
+    config: &'a crate::config::LauncherConfig,
+    instance_id: &'a str,
+    project_id: &'a str,
+    version_id: &'a str,
+    target_dir: &'a std::path::Path,
+    installed: &'a mut Vec<InstalledMod>,
+    skipped: &'a mut Vec<String>,
+    visited: &'a mut HashSet<String>,
+) -> Pin<Box<dyn Future<Output = Result<(), LauncherError>> + Send + 'a>> {
+    Box::pin(async move {
+        if visited.contains(project_id) {
             return Ok(());
         }
-    }
+        visited.insert(project_id.to_string());
 
-    client.download_file(&primary_file.url, &dest_path, &primary_file.hashes.sha512).await?;
+        let versions = client.get_project_versions(project_id, None, None).await?;
+        let version = versions
+            .iter()
+            .find(|v| v.id == version_id)
+            .ok_or_else(|| LauncherError::Modrinth(format!("Version {} not found", version_id)))?;
 
-    installed.push(InstalledMod {
-        project_id: project_id.to_string(),
-        version_id: version.id.clone(),
-        version_number: version.version_number.clone(),
-        project_title: project_id.to_string(),
-        file_name: primary_file.filename.clone(),
-        sha512: primary_file.hashes.sha512.clone(),
-        installed_path: dest_path,
-        installed_at: chrono::Utc::now().to_rfc3339(),
-    });
+        let primary_file = version
+            .files
+            .iter()
+            .find(|f| f.primary)
+            .or_else(|| version.files.first())
+            .ok_or_else(|| LauncherError::Modrinth("No files in version".to_string()))?;
 
-    for dep in &version.dependencies {
-        if dep.dependency_type == "required" {
-            let _ = install_version_recursive(
-                client,
-                config,
-                instance_id,
-                &dep.project_id,
-                &dep.version_id,
-                target_dir,
-                installed,
-                skipped,
-                visited,
-            )
-            .await;
+        let dest_path = target_dir.join(&primary_file.filename);
+
+        if dest_path.exists() {
+            let data = fs::read(&dest_path).map_err(|e| LauncherError::Io(e.to_string()))?;
+            let mut hasher = Sha512::new();
+            hasher.update(&data);
+            let actual = format!("{:x}", hasher.finalize());
+            if actual == primary_file.hashes.sha512 {
+                skipped.push(format!("{} (already installed)", primary_file.filename));
+                installed.push(InstalledMod {
+                    project_id: project_id.to_string(),
+                    version_id: version.id.clone(),
+                    version_number: version.version_number.clone(),
+                    project_title: project_id.to_string(),
+                    file_name: primary_file.filename.clone(),
+                    sha512: primary_file.hashes.sha512.clone(),
+                    installed_path: dest_path,
+                    installed_at: chrono::Utc::now().to_rfc3339(),
+                });
+                return Ok(());
+            }
         }
-    }
 
-    Ok(())
+        client.download_file(&primary_file.url, &dest_path, &primary_file.hashes.sha512).await?;
+
+        installed.push(InstalledMod {
+            project_id: project_id.to_string(),
+            version_id: version.id.clone(),
+            version_number: version.version_number.clone(),
+            project_title: project_id.to_string(),
+            file_name: primary_file.filename.clone(),
+            sha512: primary_file.hashes.sha512.clone(),
+            installed_path: dest_path,
+            installed_at: chrono::Utc::now().to_rfc3339(),
+        });
+
+        for dep in &version.dependencies {
+            if dep.dependency_type == "required" {
+                let _ = install_version_recursive(
+                    client,
+                    config,
+                    instance_id,
+                    &dep.project_id,
+                    &dep.version_id,
+                    target_dir,
+                    installed,
+                    skipped,
+                    visited,
+                )
+                .await;
+            }
+        }
+
+        Ok(())
+    })
 }
 
 #[tauri::command]
