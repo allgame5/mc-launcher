@@ -87,7 +87,7 @@ pub async fn get_java_path(
 
     if let Some(ref custom) = config.java_path {
         if Path::new(custom).exists() {
-            return Ok(Some(custom.clone()));
+            return Ok(Some(custom.to_string_lossy().to_string()));
         }
     }
 

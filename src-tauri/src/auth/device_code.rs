@@ -156,8 +156,8 @@ pub async fn device_code_poll(
         match resp {
             Ok(tokens) => {
                 let xbl_result = xbl_authenticate(tokens.access_token.clone()).await?;
-                let username = xbl_result.user.clone().unwrap_or_else(|| "Unknown".to_string());
-                let xuid = xbl_result.xuid.clone();
+                let username = xbl_result.user.clone();
+                let xuid = Some(xbl_result.xuid.clone());
 
                 let mut accounts = load_accounts(config);
 
@@ -165,7 +165,7 @@ pub async fn device_code_poll(
                     existing.access_token = tokens.access_token;
                     existing.refresh_token = tokens.refresh_token;
                     existing.expires_at = Some(chrono::Utc::now().timestamp() + tokens.expires_in);
-                    existing.xuid = xuid;
+                    existing.xuid = xuid.clone();
                 } else {
                     accounts.push(StoredAccount {
                         username,
