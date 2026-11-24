@@ -1,6 +1,5 @@
 ﻿use crate::error::LauncherError;
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
