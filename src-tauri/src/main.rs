@@ -1,4 +1,4 @@
-﻿#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod auth;
 mod config;
@@ -29,7 +29,7 @@ pub struct AppState {
 }
 
 fn main() {
-    // Config vor dem Builder laden, damit wir sie manage()n kÃ¶nnen
+    // Config vor dem Builder laden, damit wir sie manage()n können
     let config = LauncherConfig::load_raw().expect("failed to load launcher config");
 
     let app_data_dir = config.paths().instances_dir.parent().unwrap().to_path_buf();
@@ -45,19 +45,19 @@ fn main() {
             let _ = app_data_dir.clone();
 
             ensure_dir(&app_data_dir).map_err(|e| {
-                std::io::Error::other(e.to_string()).into()
+                Box::<dyn std::error::Error>::from(std::io::Error::other(e.to_string()))
             })?;
             ensure_dir(&app_data_dir.join("instances")).map_err(|e| {
-                std::io::Error::other(e.to_string()).into()
+                Box::<dyn std::error::Error>::from(std::io::Error::other(e.to_string()))
             })?;
             ensure_dir(&app_data_dir.join("java")).map_err(|e| {
-                std::io::Error::other(e.to_string()).into()
+                Box::<dyn std::error::Error>::from(std::io::Error::other(e.to_string()))
             })?;
             ensure_dir(&app_data_dir.join("cache")).map_err(|e| {
-                std::io::Error::other(e.to_string()).into()
+                Box::<dyn std::error::Error>::from(std::io::Error::other(e.to_string()))
             })?;
             ensure_dir(&app_data_dir.join("logs")).map_err(|e| {
-                std::io::Error::other(e.to_string()).into()
+                Box::<dyn std::error::Error>::from(std::io::Error::other(e.to_string()))
             })?;
 
             Ok(())
