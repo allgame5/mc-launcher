@@ -21,11 +21,13 @@ flate2 = "1"
 tar = "0.4"
 urlencoding = "2"
 
+
 [dependencies.tauri-plugin-fs]
 version = "2"
 
 [build-dependencies]
 tauri-cli = "2"
+tauri-build = { version = "2", features = [] }
 
 [profile.release]
 lto = true
